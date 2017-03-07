@@ -157,12 +157,12 @@ bool HArray::finHeaderBlockPlace(CompactPage* pRootCompactPage,
 					{
 						uint32 headerOffset = pCompactPage->Values[i] << leftShift >> rightShift;
 
-						HeaderCell& headerCell = pHeader[baseHeaderOffset + headerOffset];
+						ContentCell& headerCell = pHeader[baseHeaderOffset + headerOffset];
 
 						if(headerCell.Type == EMPTY_TYPE) //fill
 						{
 							headerCell.Type = headerCellType;
-							headerCell.Offset = pCompactPage->Offsets[i];
+							headerCell.Value = pCompactPage->Offsets[i];
 						}
 						else //clear all previous filled
 						{
@@ -175,12 +175,12 @@ bool HArray::finHeaderBlockPlace(CompactPage* pRootCompactPage,
 								{
 									uint32 headerOffset = pCompactPage->Values[i] << leftShift >> rightShift;
 
-									HeaderCell& headerCell = pHeader[baseHeaderOffset + headerOffset];
+									ContentCell& headerCell = pHeader[baseHeaderOffset + headerOffset];
 
 									if(headerCell.Type == headerCellType) //clear
 									{
 										headerCell.Type = EMPTY_TYPE;
-										headerCell.Offset = 0;
+										headerCell.Value = 0;
 									}
 									else //stop
 									{
@@ -271,14 +271,14 @@ bool HArray::allocateHeaderBlock(uint32 keyValue,
 		{
 			uint32 headerOffset = pCompactPage->Values[i] << leftShift >> rightShift;
 
-			HeaderCell& headerCell = pHeader[baseHeaderOffset + headerOffset];
+			ContentCell& headerCell = pHeader[baseHeaderOffset + headerOffset];
 
 			switch (headerCell.Type)
 			{
 				case EMPTY_TYPE: //fill header cell
 				{
 					headerCell.Type = HEADER_CURRENT_VALUE_TYPE << 6 | parentID;
-					headerCell.Offset = pCompactPage->Offsets[i];
+					headerCell.Value = pCompactPage->Offsets[i];
 
 					break;
 				}
@@ -297,20 +297,20 @@ bool HArray::allocateHeaderBlock(uint32 keyValue,
 					}
 
 					HeaderBranchCell& headerBranchCell = pHeaderBranchPage->pHeaderBranch[lastHeaderBranchOffset & 0xFFFF];
-					headerBranchCell.HeaderOffset = headerCell.Offset;
+					headerBranchCell.HeaderOffset = headerCell.Value;
 
 					headerBranchCell.ParentIDs[0] = parentID;
 					headerBranchCell.Offsets[0] = pCompactPage->Offsets[i];
 
 					headerCell.Type = HEADER_BRANCH_TYPE;
-					headerCell.Offset = lastBranchOffset++;
+					headerCell.Value = lastBranchOffset++;
 
 					break;
 				}
 				case HEADER_BRANCH_TYPE: //header branch, check
 				{
 					HeaderBranchPage* pHeaderBranchPage;
-					HeaderBranchCell* pHeaderBranchCell = &pHeaderBranchPages[headerCell.Offset >> 16]->pHeaderBranch[headerCell.Offset & 0xFFFF];
+					HeaderBranchCell* pHeaderBranchCell = &pHeaderBranchPages[headerCell.Value >> 16]->pHeaderBranch[headerCell.Value & 0xFFFF];
 
 					while(true)
 					{
@@ -377,14 +377,14 @@ bool HArray::allocateHeaderBlock(uint32 keyValue,
 						
 					//existing
 					headerBranchCell.ParentIDs[0] = currParentID;
-					headerBranchCell.Offsets[0] = headerCell.Offset;
+					headerBranchCell.Offsets[0] = headerCell.Value;
 
 					//our new
 					headerBranchCell.ParentIDs[1] = parentID;
 					headerBranchCell.Offsets[1] = lastContentOffset;
 
 					headerCell.Type = HEADER_BRANCH_TYPE;
-					headerCell.Offset = lastBranchOffset++;
+					headerCell.Value = lastBranchOffset++;
 
 					break;
 				}

@@ -59,11 +59,11 @@ bool HArray::testContentConsistency()
 	//1. scan header ==============================================================================================
 	for (uint32 cell = 0; cell < HeaderSize; cell++)
 	{
-		HeaderCell& headerCell = pHeader[cell];
+		ContentCell& headerCell = pHeader[cell];
 
 		if (headerCell.Type == HEADER_JUMP_TYPE)
 		{
-			count += getFullContentLen(headerCell.Offset);
+			count += getFullContentLen(headerCell.Value);
 		}
 	}
 
@@ -353,13 +353,13 @@ bool HArray::testFillContentPages()
 	//1. scan header ==============================================================================================
 	for (uint32 cell = 0; cell < HeaderSize; cell++)
 	{
-		HeaderCell& headerCell = pHeader[cell];
+		ContentCell& headerCell = pHeader[cell];
 
 		if (headerCell.Type == HEADER_JUMP_TYPE)
 		{
-			uint32 len = getFullContentLen(headerCell.Offset);
+			uint32 len = getFullContentLen(headerCell.Value);
 
-			for (uint32 j = headerCell.Offset; j < headerCell.Offset + len; j++)
+			for (uint32 j = headerCell.Value; j < headerCell.Value + len; j++)
 			{
 				control[j]++;
 			}

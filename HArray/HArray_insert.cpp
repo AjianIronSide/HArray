@@ -56,7 +56,7 @@ uint32 HArray::insert(uint32* key,
 			headerOffset = (*normalizeFunc)(key) >> HeaderBits;
 		}
 
-		HeaderCell* pHeaderCell = &pHeader[headerOffset];
+		ContentCell* pHeaderCell = &pHeader[headerOffset];
 
 		ContentPage* pContentPage;
 		uint32 contentIndex;
@@ -95,7 +95,7 @@ uint32 HArray::insert(uint32* key,
 			{
 				uint32 startContentOffset = tailReleasedContentOffsets[keyLen];
 
-				pHeaderCell->Offset = startContentOffset;
+				pHeaderCell->Value = startContentOffset;
 
 				ContentPage* pContentPage = pContentPages[startContentOffset >> 16];
 				uint32 contentIndex = startContentOffset & 0xFFFF;
@@ -142,7 +142,7 @@ uint32 HArray::insert(uint32* key,
 					contentIndex = 0;						
 				}
 
-				pHeaderCell->Offset = lastContentOffset;
+				pHeaderCell->Value = lastContentOffset;
 
 				pContentPage->pContent[contentIndex].Type = (ONLY_CONTENT_TYPE + keyLen);
 
@@ -162,13 +162,13 @@ uint32 HArray::insert(uint32* key,
 		}
 		case HEADER_JUMP_TYPE:
 		{
-			contentOffset = pHeaderCell->Offset;
+			contentOffset = pHeaderCell->Value;
 
 			break;
 		}
 		case HEADER_BRANCH_TYPE:
 		{
-			HeaderBranchCell& headerBranchCell = pHeaderBranchPages[pHeaderCell->Offset >> 16]->pHeaderBranch[pHeaderCell->Offset & 0xFFFF];
+			HeaderBranchCell& headerBranchCell = pHeaderBranchPages[pHeaderCell->Value >> 16]->pHeaderBranch[pHeaderCell->Value & 0xFFFF];
 
 			if (headerBranchCell.HeaderOffset)
 			{
@@ -200,10 +200,10 @@ uint32 HArray::insert(uint32* key,
 			HeaderBranchCell& headerBranchCell = pHeaderBranchPage->pHeaderBranch[lastHeaderBranchOffset & 0xFFFF];
 			pSetLastContentOffset = &headerBranchCell.HeaderOffset;
 			headerBranchCell.ParentIDs[0] = pHeaderCell->Type << 2 >> 2;
-			headerBranchCell.Offsets[0] = pHeaderCell->Offset;
+			headerBranchCell.Offsets[0] = pHeaderCell->Value;
 
 			pHeaderCell->Type = HEADER_BRANCH_TYPE;
-			pHeaderCell->Offset = lastBranchOffset++;
+			pHeaderCell->Value = lastBranchOffset++;
 
 			goto FILL_KEY2;
 		}
@@ -1548,14 +1548,14 @@ uint32 HArray::insert(uint32* key,
 				break;
 			};
 
-			HeaderCell& headerCell = pHeader[headerBaseOffset + headerOffset];
+			ContentCell& headerCell = pHeader[headerBaseOffset + headerOffset];
 
 			switch (headerCell.Type)
 			{
 			case EMPTY_TYPE: //fill header cell
 			{
 				headerCell.Type = HEADER_CURRENT_VALUE_TYPE << 6 | parentID;
-				pSetLastContentOffset = &headerCell.Offset;
+				pSetLastContentOffset = &headerCell.Value;
 
 				goto FILL_KEY2;
 			}
@@ -1574,19 +1574,19 @@ uint32 HArray::insert(uint32* key,
 				}
 
 				HeaderBranchCell& headerBranchCell = pHeaderBranchPage->pHeaderBranch[lastHeaderBranchOffset & 0xFFFF];
-				headerBranchCell.HeaderOffset = headerCell.Offset;
+				headerBranchCell.HeaderOffset = headerCell.Value;
 
 				headerBranchCell.ParentIDs[0] = parentID;
 				pSetLastContentOffset = &headerBranchCell.Offsets[0];
 
 				headerCell.Type = HEADER_BRANCH_TYPE;
-				headerCell.Offset = lastBranchOffset++;
+				headerCell.Value = lastBranchOffset++;
 
 				goto FILL_KEY2;
 			}
 			case HEADER_BRANCH_TYPE: //header branch, check
 			{
-				HeaderBranchCell* pHeaderBranchCell = &pHeaderBranchPages[headerCell.Offset >> 16]->pHeaderBranch[headerCell.Offset & 0xFFFF];
+				HeaderBranchCell* pHeaderBranchCell = &pHeaderBranchPages[headerCell.Value >> 16]->pHeaderBranch[headerCell.Value & 0xFFFF];
 
 				while (true)
 				{
@@ -1643,7 +1643,7 @@ uint32 HArray::insert(uint32* key,
 
 				if (parentID == currParentID) //our header cell, continue
 				{
-					contentOffset = headerCell.Offset;
+					contentOffset = headerCell.Value;
 
 					goto NEXT_KEY_PART;
 				}
@@ -1665,14 +1665,14 @@ uint32 HArray::insert(uint32* key,
 
 					//existing
 					headerBranchCell.ParentIDs[0] = currParentID;
-					headerBranchCell.Offsets[0] = headerCell.Offset;
+					headerBranchCell.Offsets[0] = headerCell.Value;
 
 					//our new
 					headerBranchCell.ParentIDs[1] = parentID;
 					pSetLastContentOffset = &headerBranchCell.Offsets[1];
 
 					headerCell.Type = HEADER_BRANCH_TYPE;
-					headerCell.Offset = lastBranchOffset++;
+					headerCell.Value = lastBranchOffset++;
 
 					goto FILL_KEY2;
 				}

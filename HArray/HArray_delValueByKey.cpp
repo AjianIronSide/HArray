@@ -741,11 +741,11 @@ bool HArray::delValueByKey(uint32* key,
 		headerOffset = (*normalizeFunc)(key);
 	}
 
-	HeaderCell& headerCell = pHeader[headerOffset];
+	ContentCell& headerCell = pHeader[headerOffset];
 
 	if (headerCell.Type)
 	{
-		uint32 contentOffset = headerCell.Offset;
+		uint32 contentOffset = headerCell.Value;
 
 		uint32 keyOffset = 0;
 
@@ -1101,7 +1101,7 @@ DISMANTLING:
 	if (dismantling(path, pathLen))
 	{
 		headerCell.Type = EMPTY_TYPE;
-		headerCell.Offset = 0;
+		headerCell.Value = 0;
 
 		amountFreeSlotsBeforeHeaderResize++;
 	}

@@ -167,12 +167,6 @@ struct ContentCell
 	uint32 Value;
 };
 
-struct HeaderCell
-{
-	uchar8 Type;
-	uint32 Offset;
-};
-
 struct HeaderBranchCell
 {
 	HeaderBranchCell()

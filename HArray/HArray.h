@@ -57,7 +57,7 @@ public:
 	uint32 BranchPagesSize;
 	uint32 BlockPagesSize;
 
-	HeaderCell* pHeader;
+	ContentCell* pHeader;
 
 	/*uint32* pActiveContent;
 	ContentTypeCell* pActiveContentType;
@@ -161,7 +161,7 @@ public:
 			
             MAX_SAFE_SHORT = MAX_SHORT - ValueLen;
 
-            pHeader = new HeaderCell[HeaderSize];
+            pHeader = new ContentCell[HeaderSize];
             for(uint32 i=0; i < HeaderSize; i++)
             {
                 pHeader[i].Type = 0;
@@ -244,7 +244,7 @@ public:
 
     		if(pHeader)
 			{
-				if (fwrite(pHeader, sizeof(HeaderCell), HeaderSize, pFile) != HeaderSize)
+				if (fwrite(pHeader, sizeof(ContentCell), HeaderSize, pFile) != HeaderSize)
 				{
 					goto ERROR;
 				}
@@ -335,9 +335,9 @@ public:
 
     		if(pHeader)
 			{
-				pHeader = new HeaderCell[HeaderSize];
+				pHeader = new ContentCell[HeaderSize];
 
-				if(fread (pHeader, sizeof(HeaderCell), HeaderSize, pFile) != HeaderSize)
+				if(fread (pHeader, sizeof(ContentCell), HeaderSize, pFile) != HeaderSize)
 				{
 					goto ERROR;
 				}

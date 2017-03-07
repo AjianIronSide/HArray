@@ -175,12 +175,12 @@ void HArray::shrinkContentPages()
 	//1. scan header ==============================================================================================
 	for (uint32 cell = 0; cell < HeaderSize; cell++)
 	{
-		HeaderCell& headerCell = pHeader[cell];
+		ContentCell& headerCell = pHeader[cell];
 
-		if (headerCell.Offset >= shrinkLastContentOffset &&
+		if (headerCell.Value >= shrinkLastContentOffset &&
 			headerCell.Type == HEADER_JUMP_TYPE)
 		{
-			currMovedLen += moveContentCells(headerCell.Offset, //changed
+			currMovedLen += moveContentCells(headerCell.Value, //changed
 				newContentPages,
 				countNewContentPages,
 				shrinkLastContentOffset,

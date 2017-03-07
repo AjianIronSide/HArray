@@ -240,7 +240,7 @@ uint32 HArray::scanKeysAndValues(uint32* key,
 		headerOffset = (*normalizeFunc)(key);
 	}
 
-	uint32 contentOffset = pHeader[headerOffset].Offset;
+	uint32 contentOffset = pHeader[headerOffset].Value;
 
 	if(contentOffset)
 	{
@@ -508,7 +508,7 @@ uint32 HArray::scanKeysAndValues(HARRAY_ITEM_VISIT_FUNC visitor,
 
 	for (uint32 i = 0; i < HeaderSize; i++)
 	{
-		HeaderCell& headerCell = pHeader[i];
+		ContentCell& headerCell = pHeader[i];
 
 		switch (headerCell.Type)
 		{
@@ -526,7 +526,7 @@ uint32 HArray::scanKeysAndValues(HARRAY_ITEM_VISIT_FUNC visitor,
 			}
 			case HEADER_BRANCH_TYPE:
 			{
-				HeaderBranchCell& headerBranchCell = pHeaderBranchPages[headerCell.Offset >> 16]->pHeaderBranch[headerCell.Offset & 0xFFFF];
+				HeaderBranchCell& headerBranchCell = pHeaderBranchPages[headerCell.Value >> 16]->pHeaderBranch[headerCell.Value & 0xFFFF];
 
 				if (headerBranchCell.HeaderOffset)
 				{
