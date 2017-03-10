@@ -21,8 +21,8 @@
 #include "HArray.h"
 
 uint32 HArray::insert(uint32* key,
-					uint32 keyLen,
-					uint32 value)
+	uint32 keyLen,
+	uint32 value)
 {
 	try
 	{
@@ -60,7 +60,7 @@ uint32 HArray::insert(uint32* key,
 
 		ContentPage* pContentPage;
 		uint32 contentIndex;
-		
+
 		ContentCell* pContentCell;
 
 		uint32* pSetLastContentOffset;
@@ -169,126 +169,12 @@ uint32 HArray::insert(uint32* key,
 		{
 			uint32 originKeyLen = keyOffset + pContentCell->Type - ONLY_CONTENT_TYPE;
 
-			if (contentIndex < maxSafeShort) //content in one page
+			for (; keyOffset < originKeyLen; contentOffset++, contentIndex++, keyOffset++)
 			{
-				for (; keyOffset < originKeyLen; contentOffset++, contentIndex++, keyOffset++)
-				{
-					ContentCell& contentCell = pContentPage->pContent[contentIndex];
+				ContentCell& contentCell = pContentPage->pContent[contentIndex];
 
-					//key less than original, insert
-					if (keyOffset == keyLen)
-					{
-						VarCell* pVarCell;
-
-						if (countReleasedVarCells)
-						{
-							uint32 varOffset = tailReleasedVarOffset;
-
-							pVarCell = &pVarPages[varOffset >> 16]->pVar[varOffset & 0xFFFF];
-
-							tailReleasedVarOffset = pVarCell->ValueContCell.Value;
-
-							countReleasedVarCells--;
-						}
-						else
-						{
-							VarPage* pVarPage = pVarPages[lastVarOffset >> 16];
-							if (!pVarPage)
-							{
-								pVarPage = new VarPage();
-								pVarPages[VarPagesCount++] = pVarPage;
-
-								if (VarPagesCount == VarPagesSize)
-								{
-									reallocateVarPages();
-								}
-							}
-
-							pVarCell = &pVarPage->pVar[lastVarOffset & 0xFFFF];
-						}
-
-						pVarCell->ContCell.Type = CURRENT_VALUE_TYPE;
-						pVarCell->ContCell.Value = contentCell.Value;
-
-						pVarCell->ValueContCell.Type = VALUE_TYPE;
-						pVarCell->ValueContCell.Value = value;
-						
-						contentCell.Type = VAR_TYPE;
-						contentCell.Value = lastVarOffset++;
-
-						//set rest of key and value
-						for (contentIndex++, keyOffset++; keyOffset < originKeyLen; contentIndex++, keyOffset++)
-						{
-							pContentPage->pContent[contentIndex].Type = CURRENT_VALUE_TYPE;
-						}
-
-						pContentPage->pContent[contentIndex].Type = VALUE_TYPE;
-
-						return 0;
-					}
-					else if (contentCell.Value != key[keyOffset])
-					{
-#ifndef _RELEASE
-						tempValues[CONTENT_BRANCH_STAT]++;
-#endif
-
-						//create branch
-						contentCell.Type = MIN_BRANCH_TYPE1 + 1;
-
-						//get free branch cell
-						BranchCell* pBranchCell;
-						if (countReleasedBranchCells)
-						{
-							uint32 branchOffset = tailReleasedBranchOffset;
-
-							pBranchCell = &pBranchPages[branchOffset >> 16]->pBranch[branchOffset & 0xFFFF];
-
-							tailReleasedBranchOffset = pBranchCell->Values[0];
-
-							countReleasedBranchCells--;
-
-							pBranchCell->Values[0] = contentCell.Value;
-							contentCell.Value = branchOffset;
-						}
-						else
-						{
-							BranchPage* pBranchPage = pBranchPages[lastBranchOffset >> 16];
-							if (!pBranchPage)
-							{
-								pBranchPage = new BranchPage();
-								pBranchPages[BranchPagesCount++] = pBranchPage;
-
-								if (BranchPagesCount == BranchPagesSize)
-								{
-									reallocateBranchPages();
-								}
-							}
-
-							pBranchCell = &pBranchPage->pBranch[lastBranchOffset & 0xFFFF];
-
-							pBranchCell->Values[0] = contentCell.Value;
-							contentCell.Value = lastBranchOffset++;
-						}
-
-						pBranchCell->Offsets[0] = contentOffset + 1;
-
-						pBranchCell->Values[1] = key[keyOffset];
-						pSetLastContentOffset = &pBranchCell->Offsets[1];
-
-						if ((keyOffset + 1) < originKeyLen)
-						{
-							pContentPage->pContent[contentIndex + 1].Type = (ONLY_CONTENT_TYPE + originKeyLen - keyOffset - 1);
-						}
-
-						goto FILL_KEY;
-					}
-					else
-					{
-						contentCell.Type = CURRENT_VALUE_TYPE; //reset to current value
-					}
-				}
-
-				if (keyLen > originKeyLen) //key more than original
+				//key less than original, insert
+				if (keyOffset == keyLen)
 				{
 					VarCell* pVarCell;
 
@@ -319,211 +205,138 @@ uint32 HArray::insert(uint32* key,
 						pVarCell = &pVarPage->pVar[lastVarOffset & 0xFFFF];
 					}
 
-					ContentCell& contentCell = pContentPage->pContent[contentIndex];
+					pVarCell->ContCell.Type = CURRENT_VALUE_TYPE;
+					pVarCell->ContCell.Value = contentCell.Value;
 
 					pVarCell->ValueContCell.Type = VALUE_TYPE;
-					pVarCell->ValueContCell.Value = contentCell.Value;
-
-					pVarCell->ContCell.Type = CONTINUE_VAR_TYPE;
-					pSetLastContentOffset = &pVarCell->ContCell.Value;
+					pVarCell->ValueContCell.Value = value;
 
 					contentCell.Type = VAR_TYPE;
 					contentCell.Value = lastVarOffset++;
 
-					goto FILL_KEY2;
-				}
-				else //key is exists, update
-				{
-					ContentCell& contentCell = pContentPage->pContent[contentIndex];
+					//set rest of key and value
+					for (contentIndex++, keyOffset++; keyOffset < originKeyLen; contentIndex++, keyOffset++)
+					{
+						pContentPage->pContent[contentIndex].Type = CURRENT_VALUE_TYPE;
+					}
 
-					contentCell.Value = value;
+					pContentPage->pContent[contentIndex].Type = VALUE_TYPE;
 
 					return 0;
+				}
+				else if (contentCell.Value != key[keyOffset])
+				{
+#ifndef _RELEASE
+					tempValues[CONTENT_BRANCH_STAT]++;
+#endif
+
+					//create branch
+					contentCell.Type = MIN_BRANCH_TYPE1 + 1;
+
+					//get free branch cell
+					BranchCell* pBranchCell;
+					if (countReleasedBranchCells)
+					{
+						uint32 branchOffset = tailReleasedBranchOffset;
+
+						pBranchCell = &pBranchPages[branchOffset >> 16]->pBranch[branchOffset & 0xFFFF];
+
+						tailReleasedBranchOffset = pBranchCell->Values[0];
+
+						countReleasedBranchCells--;
+
+						pBranchCell->Values[0] = contentCell.Value;
+						contentCell.Value = branchOffset;
+					}
+					else
+					{
+						BranchPage* pBranchPage = pBranchPages[lastBranchOffset >> 16];
+						if (!pBranchPage)
+						{
+							pBranchPage = new BranchPage();
+							pBranchPages[BranchPagesCount++] = pBranchPage;
+
+							if (BranchPagesCount == BranchPagesSize)
+							{
+								reallocateBranchPages();
+							}
+						}
+
+						pBranchCell = &pBranchPage->pBranch[lastBranchOffset & 0xFFFF];
+
+						pBranchCell->Values[0] = contentCell.Value;
+						contentCell.Value = lastBranchOffset++;
+					}
+
+					pBranchCell->Offsets[0] = contentOffset + 1;
+
+					pBranchCell->Values[1] = key[keyOffset];
+					pSetLastContentOffset = &pBranchCell->Offsets[1];
+
+					if ((keyOffset + 1) < originKeyLen)
+					{
+						pContentPage->pContent[contentIndex + 1].Type = (ONLY_CONTENT_TYPE + originKeyLen - keyOffset - 1);
+					}
+
+					goto FILL_KEY;
+				}
+				else
+				{
+					contentCell.Type = CURRENT_VALUE_TYPE; //reset to current value
 				}
 			}
-			else  //content in two pages
+
+			if (keyLen > originKeyLen) //key more than original
 			{
-				for (; keyOffset < originKeyLen; contentOffset++, keyOffset++)
+				VarCell* pVarCell;
+
+				if (countReleasedVarCells)
 				{
-					pContentPage = pContentPages[contentOffset >> 16];
-					contentIndex = contentOffset & 0xFFFF;
+					uint32 varOffset = tailReleasedVarOffset;
 
-					//key less than original, insert
-					if (keyOffset == keyLen)
+					pVarCell = &pVarPages[varOffset >> 16]->pVar[varOffset & 0xFFFF];
+
+					tailReleasedVarOffset = pVarCell->ValueContCell.Value;
+
+					countReleasedVarCells--;
+				}
+				else
+				{
+					VarPage* pVarPage = pVarPages[lastVarOffset >> 16];
+					if (!pVarPage)
 					{
-						VarCell* pVarCell;
+						pVarPage = new VarPage();
+						pVarPages[VarPagesCount++] = pVarPage;
 
-						if (countReleasedVarCells)
+						if (VarPagesCount == VarPagesSize)
 						{
-							uint32 varOffset = tailReleasedVarOffset;
-
-							pVarCell = &pVarPages[varOffset >> 16]->pVar[varOffset & 0xFFFF];
-
-							tailReleasedVarOffset = pVarCell->ValueContCell.Value;
-
-							countReleasedVarCells--;
+							reallocateVarPages();
 						}
-						else
-						{
-							VarPage* pVarPage = pVarPages[lastVarOffset >> 16];
-							if (!pVarPage)
-							{
-								pVarPage = new VarPage();
-								pVarPages[VarPagesCount++] = pVarPage;
-
-								if (VarPagesCount == VarPagesSize)
-								{
-									reallocateVarPages();
-								}
-							}
-
-							pVarCell = &pVarPage->pVar[lastVarOffset & 0xFFFF];
-						}
-
-						ContentCell& currContentCell = pContentPage->pContent[contentIndex];
-
-						pVarCell->ContCell.Type = CURRENT_VALUE_TYPE;
-						pVarCell->ContCell.Value = currContentCell.Value;
-
-						pVarCell->ValueContCell.Type = VALUE_TYPE;
-						pVarCell->ValueContCell.Value = value;
-
-						pContentPage->pContent[contentIndex].Type = VAR_TYPE;
-						pContentPage->pContent[contentIndex].Value = lastVarOffset++;
-
-						//set rest of key and value
-						for (contentOffset++, keyOffset++; keyOffset < originKeyLen; contentOffset++, keyOffset++)
-						{
-							pContentPages[contentOffset >> 16]->pContent[contentOffset & 0xFFFF].Type = CURRENT_VALUE_TYPE;
-						}
-
-						pContentPages[contentOffset >> 16]->pContent[contentOffset & 0xFFFF].Type = VALUE_TYPE;
-
-						return 0;
 					}
-					else if (pContentPage->pContent[contentIndex].Value != key[keyOffset])
-					{
-#ifndef _RELEASE
-						tempValues[CONTENT_BRANCH_STAT]++;
-#endif
 
-						//create branch
-						pContentPage->pContent[contentIndex].Type = MIN_BRANCH_TYPE1 + 1;
-
-						//get free branch cell
-						BranchCell* pBranchCell;
-						if (countReleasedBranchCells)
-						{
-							uint32 branchOffset = tailReleasedBranchOffset;
-
-							pBranchCell = &pBranchPages[branchOffset >> 16]->pBranch[branchOffset & 0xFFFF];
-
-							tailReleasedBranchOffset = pBranchCell->Values[0];
-
-							countReleasedBranchCells--;
-
-							pBranchCell->Values[0] = pContentPage->pContent[contentIndex].Value;
-							pContentPage->pContent[contentIndex].Value = branchOffset;
-						}
-						else
-						{
-							BranchPage* pBranchPage = pBranchPages[lastBranchOffset >> 16];
-							if (!pBranchPage)
-							{
-								pBranchPage = new BranchPage();
-								pBranchPages[BranchPagesCount++] = pBranchPage;
-
-								if (BranchPagesCount == BranchPagesSize)
-								{
-									reallocateBranchPages();
-								}
-							}
-
-							pBranchCell = &pBranchPage->pBranch[lastBranchOffset & 0xFFFF];
-
-							pBranchCell->Values[0] = pContentPage->pContent[contentIndex].Value;
-							pContentPage->pContent[contentIndex].Value = lastBranchOffset++;
-						}
-
-						pBranchCell->Offsets[0] = contentOffset + 1;
-
-						pBranchCell->Values[1] = key[keyOffset];
-						pSetLastContentOffset = &pBranchCell->Offsets[1];
-
-						if ((keyOffset + 1) < originKeyLen)
-						{
-							//set rest of key
-							contentOffset++;
-
-							pContentPage = pContentPages[contentOffset >> 16];
-							contentIndex = contentOffset & 0xFFFF;
-
-							pContentPage->pContent[contentIndex].Type = (ONLY_CONTENT_TYPE + originKeyLen - keyOffset - 1);
-						}
-
-						goto FILL_KEY;
-					}
-					else
-					{
-						pContentPage->pContent[contentIndex].Type = CURRENT_VALUE_TYPE; //reset to current value
-					}
+					pVarCell = &pVarPage->pVar[lastVarOffset & 0xFFFF];
 				}
 
-				pContentPage = pContentPages[contentOffset >> 16];
-				contentIndex = contentOffset & 0xFFFF;
+				ContentCell& contentCell = pContentPage->pContent[contentIndex];
 
-				if (keyLen > originKeyLen) //key more than original
-				{
-					VarCell* pVarCell;
+				pVarCell->ValueContCell.Type = VALUE_TYPE;
+				pVarCell->ValueContCell.Value = contentCell.Value;
 
-					if (countReleasedVarCells)
-					{
-						uint32 varOffset = tailReleasedVarOffset;
+				pVarCell->ContCell.Type = CONTINUE_VAR_TYPE;
+				pSetLastContentOffset = &pVarCell->ContCell.Value;
 
-						pVarCell = &pVarPages[varOffset >> 16]->pVar[varOffset & 0xFFFF];
+				contentCell.Type = VAR_TYPE;
+				contentCell.Value = lastVarOffset++;
 
-						tailReleasedVarOffset = pVarCell->ValueContCell.Value;
+				goto FILL_KEY2;
+			}
+			else //key is exists, update
+			{
+				ContentCell& contentCell = pContentPage->pContent[contentIndex];
 
-						countReleasedVarCells--;
-					}
-					else
-					{
-						VarPage* pVarPage = pVarPages[lastVarOffset >> 16];
-						if (!pVarPage)
-						{
-							pVarPage = new VarPage();
-							pVarPages[VarPagesCount++] = pVarPage;
+				contentCell.Value = value;
 
-							if (VarPagesCount == VarPagesSize)
-							{
-								reallocateVarPages();
-							}
-						}
-
-						pVarCell = &pVarPage->pVar[lastVarOffset & 0xFFFF];
-					}
-
-					ContentCell& contentCell = pContentPage->pContent[contentIndex];
-
-					pVarCell->ValueContCell.Type = VALUE_TYPE;
-					pVarCell->ValueContCell.Value = contentCell.Value;
-
-					pVarCell->ContCell.Type = CONTINUE_VAR_TYPE;
-					pSetLastContentOffset = &pVarCell->ContCell.Value;
-
-					contentCell.Type = VAR_TYPE;
-					contentCell.Value = lastVarOffset++;
-
-					goto FILL_KEY2;
-				}
-				else //key is exists, update
-				{
-					ContentCell& contentCell = pContentPage->pContent[contentIndex];
-
-					contentCell.Value = value;
-
-					return 0;
-				}
+				return 0;
 			}
 
 			return 0;
@@ -654,12 +467,12 @@ uint32 HArray::insert(uint32* key,
 			return 0;
 		}
 
-HEADER_CONTENT_CELL:
+	HEADER_CONTENT_CELL:
 
 		uint32 keyValue;
 
 		keyValue = key[keyOffset];
-		
+
 		if (pContentCell->Type <= MAX_BRANCH_TYPE1) //BRANCH =====================================================================
 		{
 			BranchPage* pBranchPage = pBranchPages[pContentCell->Value >> 16];
@@ -757,7 +570,7 @@ HEADER_CONTENT_CELL:
 
 				//get free block
 				uint32 startBlockOffset;
-				
+
 				if (countReleasedBlockCells)
 				{
 					startBlockOffset = tailReleasedBlockOffset;
@@ -801,7 +614,7 @@ HEADER_CONTENT_CELL:
 					{
 						currBlockCell = blockCells[i];
 
-						if(i == BRANCH_ENGINE_SIZE) //last cell
+						if (i == BRANCH_ENGINE_SIZE) //last cell
 						{
 							pSetLastContentOffset = &currBlockCell.Offset;
 						}
@@ -846,13 +659,13 @@ HEADER_CONTENT_CELL:
 
 							pCurrBranchCell->Values[0] = blockCells[i].ValueOrOffset;
 
-							if(i < BRANCH_ENGINE_SIZE) //last cell ?
+							if (i < BRANCH_ENGINE_SIZE) //last cell ?
 							{
 								pCurrBranchCell->Offsets[0] = blockCells[i].Offset;
 							}
 							else
 							{
-								pSetLastContentOffset = &pCurrBranchCell->Offsets[0];								
+								pSetLastContentOffset = &pCurrBranchCell->Offsets[0];
 							}
 						}
 						else //types 1..4
@@ -862,13 +675,13 @@ HEADER_CONTENT_CELL:
 
 							currBranchCell.Values[currBlockCell.Type] = blockCells[i].ValueOrOffset;
 
-							if(i < BRANCH_ENGINE_SIZE) //last cell ?
+							if (i < BRANCH_ENGINE_SIZE) //last cell ?
 							{
 								currBranchCell.Offsets[currBlockCell.Type] = blockCells[i].Offset;
 							}
 							else
 							{
-								pSetLastContentOffset = &currBranchCell.Offsets[currBlockCell.Type];								
+								pSetLastContentOffset = &currBranchCell.Offsets[currBlockCell.Type];
 							}
 
 							currBlockCell.Type++;
@@ -1007,7 +820,7 @@ HEADER_CONTENT_CELL:
 						tailReleasedBranchOffset = pBranchCell->Values[0];
 
 						countReleasedBranchCells--;
-												
+
 						blockCell.ValueOrOffset = branchOffset;
 					}
 					else
@@ -1257,7 +1070,7 @@ HEADER_CONTENT_CELL:
 							{
 								currBlockCell = blockCells[i];
 
-								if(i == branchesSize) //last cell
+								if (i == branchesSize) //last cell
 								{
 									pSetLastContentOffset = &currBlockCell.Offset;
 								}
@@ -1303,7 +1116,7 @@ HEADER_CONTENT_CELL:
 
 									pCurrBranchCell->Values[0] = blockCells[i].ValueOrOffset;
 
-									if(i < branchesSize) //last cell ?
+									if (i < branchesSize) //last cell ?
 									{
 										pCurrBranchCell->Offsets[0] = blockCells[i].Offset;
 									}
@@ -1319,7 +1132,7 @@ HEADER_CONTENT_CELL:
 
 									currBranchCell.Values[currBlockCell.Type] = blockCells[i].ValueOrOffset;
 
-									if(i < branchesSize) //last cell ?
+									if (i < branchesSize) //last cell ?
 									{
 										currBranchCell.Offsets[currBlockCell.Type] = blockCells[i].Offset;
 									}
@@ -1369,7 +1182,7 @@ HEADER_CONTENT_CELL:
 
 									pCurrBranchCell->Values[0] = blockCells[i].ValueOrOffset;
 
-									if(i < branchesSize) //last cell ?
+									if (i < branchesSize) //last cell ?
 									{
 										pCurrBranchCell->Offsets[0] = blockCells[i].Offset;
 									}
@@ -1387,7 +1200,7 @@ HEADER_CONTENT_CELL:
 
 									currBranchCell.Values[countValues] = blockCells[i].ValueOrOffset;
 
-									if(i < branchesSize) //last cell ?
+									if (i < branchesSize) //last cell ?
 									{
 										currBranchCell.Offsets[countValues] = blockCells[i].Offset;
 									}
@@ -1671,7 +1484,7 @@ HEADER_CONTENT_CELL:
 
 				lastContentOffset = (page << 16);
 
-				contentIndex = 0;						
+				contentIndex = 0;
 			}
 
 			//set last content offset in cell
