@@ -58,15 +58,15 @@ NEXT_KEY_PART:
 
 			for(; keyOffset < keyLen; contentIndex++, keyOffset++)
 			{
-				if(pContentPage->pContent[contentIndex].Value != key[keyOffset])
+				if(*(uint32*)&pContentPage->pContent[contentIndex] != key[keyOffset])
 					return 0;
 			}
 
-			return &pContentPage->pContent[contentIndex].Value; //return value
+			return (uint32*)&pContentPage->pContent[contentIndex]; //return value
 		}
 
 		uint32& keyValue = key[keyOffset];
-		uint32* pContentCellValueOrOffset = &pContentPage->pContent[contentIndex].Value;
+		uint32* pContentCellValueOrOffset = (uint32*)&pContentPage->pContent[contentIndex];
 
 		if(contentCellType == VAR_TYPE) //VAR =====================================================================
 		{
@@ -79,20 +79,20 @@ NEXT_KEY_PART:
 
 				if(contentCellType == CONTINUE_VAR_TYPE) //CONTINUE VAR =====================================================================
 				{
-					contentOffset = varCell.ContCell.Value;
+					contentOffset = *(uint32*)&varCell.ContCell;
 
 					goto NEXT_KEY_PART;
 				}
 				else
 				{
-					pContentCellValueOrOffset = &varCell.ContCell.Value;
+					pContentCellValueOrOffset = (uint32*)&varCell.ContCell;
 				}
 			}
 			else
 			{
 				if(varCell.ValueContCell.Type)
                 {
-                	return &varCell.ValueContCell.Value;
+                	return (uint32*)&varCell.ValueContCell;
                 }
                 else
                 {

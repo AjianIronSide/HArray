@@ -35,7 +35,7 @@ uint32 HArray::getFullContentLen(uint32 contentOffset)
 		}
 		else if (pEndContentCell->Type == VAR_TYPE) //check shunt
 		{
-			VarCell& varCell = pVarPages[pEndContentCell->Value >> 16]->pVar[pEndContentCell->Value & 0xFFFF];
+			VarCell& varCell = pVarPages[*(uint32*)pEndContentCell >> 16]->pVar[*(uint32*)pEndContentCell & 0xFFFF];
 
 			if (varCell.ContCell.Type == CONTINUE_VAR_TYPE ||
 				varCell.ContCell.Type == VALUE_TYPE ||
@@ -156,7 +156,7 @@ bool HArray::testContentConsistency()
 
 			if (varCell.ContCell.Type == CONTINUE_VAR_TYPE)
 			{
-				count += getFullContentLen(varCell.ContCell.Value);
+				count += getFullContentLen(*(uint32*)&varCell.ContCell);
 			}
 		}
 	}
@@ -196,7 +196,7 @@ bool HArray::testBranchConsistency()
 			}
 			else if (contentCell.Type == VAR_TYPE) //shunted in var cell
 			{
-				VarCell& varCell = pVarPages[contentCell.Value >> 16]->pVar[contentCell.Value & 0xFFFF];
+				VarCell& varCell = pVarPages[*(uint32*)&contentCell >> 16]->pVar[*(uint32*)&contentCell & 0xFFFF];
 
 				if (MIN_BRANCH_TYPE1 <= varCell.ContCell.Type && varCell.ContCell.Type <= MAX_BRANCH_TYPE1) //in content
 				{
@@ -465,9 +465,9 @@ bool HArray::testFillContentPages()
 
 			if (varCell.ContCell.Type == CONTINUE_VAR_TYPE)
 			{
-				uint32 len = getFullContentLen(varCell.ContCell.Value);
+				uint32 len = getFullContentLen(*(uint32*)&varCell.ContCell);
 
-				for (uint32 j = varCell.ContCell.Value; j < varCell.ContCell.Value + len; j++)
+				for (uint32 j = *(uint32*)&varCell.ContCell; j < *(uint32*)&varCell.ContCell + len; j++)
 				{
 					control[j]++;
 				}
@@ -489,7 +489,7 @@ bool HArray::testFillContentPages()
 				control[j]++;
 			}
 
-			contentOffset = pContentPages[contentOffset >> 16]->pContent[contentOffset & 0xFFFF].Value;
+			contentOffset = *(uint32*)&pContentPages[contentOffset >> 16]->pContent[contentOffset & 0xFFFF];
 		}
 	}
 
@@ -548,15 +548,15 @@ bool HArray::testFillBranchPages()
 
 			if (MIN_BRANCH_TYPE1 <= contentCell.Type && contentCell.Type <= MAX_BRANCH_TYPE1) //in content
 			{
-				control[contentCell.Value]++;
+				control[*(uint32*)&contentCell]++;
 			}
 			else if (contentCell.Type == VAR_TYPE) //shunted in var cell
 			{
-				VarCell& varCell = pVarPages[contentCell.Value >> 16]->pVar[contentCell.Value & 0xFFFF];
+				VarCell& varCell = pVarPages[*(uint32*)&contentCell >> 16]->pVar[*(uint32*)&contentCell & 0xFFFF];
 
 				if (MIN_BRANCH_TYPE1 <= varCell.ContCell.Type && varCell.ContCell.Type <= MAX_BRANCH_TYPE1) //in content
 				{
-					control[varCell.ContCell.Value]++;
+					control[*(uint32*)&varCell.ContCell]++;
 				}
 			}
 		}
@@ -661,7 +661,7 @@ bool HArray::testFillBlockPages()
 
 			if (MIN_BLOCK_TYPE <= contentCell.Type && contentCell.Type <= MAX_BLOCK_TYPE) //in content
 			{
-				control[contentCell.Value / BLOCK_ENGINE_SIZE]++;
+				control[*(uint32*)&contentCell / BLOCK_ENGINE_SIZE]++;
 			}
 		}
 	}
@@ -755,7 +755,7 @@ bool HArray::testFillVarPages()
 
 			if (contentCell.Type == VAR_TYPE) //in content
 			{
-				control[contentCell.Value]++;
+				control[*(uint32*)&contentCell]++;
 			}
 		}
 	}
@@ -765,7 +765,7 @@ bool HArray::testFillVarPages()
 	{
 		control[currTailReleasedVarOffset]++;
 
-		currTailReleasedVarOffset = pVarPages[currTailReleasedVarOffset >> 16]->pVar[currTailReleasedVarOffset & 0xFFFF].ValueContCell.Value;
+		currTailReleasedVarOffset = *(uint32*)&pVarPages[currTailReleasedVarOffset >> 16]->pVar[currTailReleasedVarOffset & 0xFFFF].ValueContCell;
 	}
 
 	for (uint32 i = 0; i < lastVarOffset; i++)

@@ -123,7 +123,7 @@ NEXT_KEY_PART:
 		ContentPage* pContentPage = pContentPages[contentOffset>>16];
 		ushort16 contentIndex = contentOffset&0xFFFF;
 
-		uint32 contentCellValueOrOffset = pContentPage->pContent[contentIndex].Value;
+		uint32 contentCellValueOrOffset = *(uint32*)&pContentPage->pContent[contentIndex];
 		uchar8 contentCellType = pContentPage->pContent[contentIndex].Type; //move to type part
 
 		if(contentCellType >= ONLY_CONTENT_TYPE) //ONLY CONTENT =========================================================================================
@@ -132,7 +132,7 @@ NEXT_KEY_PART:
 
 			for(uint32 i = 0; i < keyLen; i++, keyOffset++, contentOffset++)
 			{
-				uint32& keyValue = pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF].Value;
+				uint32& keyValue = *(uint32*)&pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF];
 
 				key[keyOffset] = keyValue;
 			}
@@ -141,7 +141,7 @@ NEXT_KEY_PART:
 
 			(*visitor)(key,
 					   keyOffset,
-					   pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF].Value,
+					   *(uint32*)&pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF],
 					   pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF].Type,
 					   pData);
 
@@ -155,11 +155,11 @@ NEXT_KEY_PART:
 
 			//save value
 			contentCellType = varCell.ContCell.Type; //read from var cell
-			contentCellValueOrOffset = varCell.ContCell.Value;
+			contentCellValueOrOffset = *(uint32*)&varCell.ContCell;
 
 			(*visitor)(key,
 					   keyOffset,
-					   varCell.ValueContCell.Value,
+					   *(uint32*)&varCell.ValueContCell,
 					   varCell.ValueContCell.Type,
 					   pData);
 
@@ -260,18 +260,18 @@ NEXT_KEY_PART:
 			{
 				for(; keyOffset < keyLen; contentIndex++, keyOffset++)
 				{
-					if(pContentPage->pContent[contentIndex].Value != key[keyOffset])
+					if(*(uint32*)&pContentPage->pContent[contentIndex] != key[keyOffset])
 						return 0;
 				}
 
 				for(; keyOffset < fullKeyLen; contentIndex++, keyOffset++)
 				{
-					key[keyOffset] = pContentPage->pContent[contentIndex].Value;
+					key[keyOffset] = *(uint32*)&pContentPage->pContent[contentIndex];
 				}
 
 				(*visitor)(key,
 						   keyOffset,
-						   pContentPage->pContent[contentIndex].Value,
+						   *(uint32*)&pContentPage->pContent[contentIndex],
 						   pContentPage->pContent[contentIndex].Type, pData); //return value
 
 				return 0;
@@ -280,18 +280,18 @@ NEXT_KEY_PART:
 			{
 				for(; keyOffset < keyLen; contentOffset++, keyOffset++)
 				{
-					if(pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF].Value != key[keyOffset])
+					if(*(uint32*)&pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF] != key[keyOffset])
 						return 0;
 				}
 
 				for(; keyOffset < fullKeyLen; contentIndex++, keyOffset++)
 				{
-					key[keyOffset] = pContentPage->pContent[contentIndex].Value;
+					key[keyOffset] = *(uint32*)&pContentPage->pContent[contentIndex];
 				}
 
 				(*visitor)(key,
 						   keyOffset,
-						   pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF].Value,
+						   *(uint32*)&pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF],
 						   pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF].Type,
 						   pData);
 
@@ -300,7 +300,7 @@ NEXT_KEY_PART:
 		}
 
 		uint32& keyValue = key[keyOffset];
-		uint32 contentCellValueOrOffset = pContentPage->pContent[contentIndex].Value;
+		uint32 contentCellValueOrOffset = *(uint32*)&pContentPage->pContent[contentIndex];
 
 		if(contentCellType == VAR_TYPE) //VAR =====================================================================
 		{
@@ -310,7 +310,7 @@ NEXT_KEY_PART:
 			if(keyOffset < keyLen)
 			{
 				contentCellType = varCell.ContCell.Type; //read from var cell
-				contentCellValueOrOffset = varCell.ContCell.Value;
+				contentCellValueOrOffset = *(uint32*)&varCell.ContCell;
 
 				if(contentCellType == CONTINUE_VAR_TYPE) //CONTINUE VAR =====================================================================
 				{

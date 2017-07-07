@@ -101,18 +101,18 @@ uint32 HArray::insert(uint32* key,
 				uint32 contentIndex = startContentOffset & 0xFFFF;
 
 				pContentPage->pContent[contentIndex].Type = (ONLY_CONTENT_TYPE + keyLen);
-				tailReleasedContentOffsets[keyLen] = pContentPage->pContent[contentIndex].Value;
+				tailReleasedContentOffsets[keyLen] = *(uint32*)&pContentPage->pContent[contentIndex];
 
 				countReleasedContentCells -= (keyLen + ValueLen);
 
 				//fill key
 				for (; keyOffset < keyLen; contentIndex++, keyOffset++)
 				{
-					pContentPage->pContent[contentIndex].Value = key[keyOffset];
+					*(uint32*)&pContentPage->pContent[contentIndex] = key[keyOffset];
 				}
 
 				pContentPage->pContent[contentIndex].Type = VALUE_TYPE;
-				pContentPage->pContent[contentIndex].Value = value;
+				*(uint32*)&pContentPage->pContent[contentIndex] = value;
 
 				return 0;
 			}
@@ -126,7 +126,7 @@ uint32 HArray::insert(uint32* key,
 					//release content cells
 					uint32 spaceLen = MAX_SHORT - contentIndex - 1;
 
-					pContentPage->pContent[contentIndex].Value = tailReleasedContentOffsets[spaceLen];
+					*(uint32*)&pContentPage->pContent[contentIndex] = tailReleasedContentOffsets[spaceLen];
 
 					tailReleasedContentOffsets[spaceLen] = lastContentOffset;
 
@@ -149,11 +149,11 @@ uint32 HArray::insert(uint32* key,
 				//fill key
 				for (; keyOffset < keyLen; contentIndex++, keyOffset++, lastContentOffset++)
 				{
-					pContentPage->pContent[contentIndex].Value = key[keyOffset];
+					*(uint32*)&pContentPage->pContent[contentIndex] = key[keyOffset];
 				}
 
 				pContentPage->pContent[contentIndex].Type = VALUE_TYPE;
-				pContentPage->pContent[contentIndex].Value = value;
+				*(uint32*)&pContentPage->pContent[contentIndex] = value;
 
 				lastContentOffset++;
 
@@ -242,7 +242,7 @@ uint32 HArray::insert(uint32* key,
 
 							pVarCell = &pVarPages[varOffset >> 16]->pVar[varOffset & 0xFFFF];
 
-							tailReleasedVarOffset = pVarCell->ValueContCell.Value;
+							tailReleasedVarOffset = *(uint32*)&pVarCell->ValueContCell;
 
 							countReleasedVarCells--;
 						}
@@ -264,13 +264,13 @@ uint32 HArray::insert(uint32* key,
 						}
 
 						pVarCell->ContCell.Type = CURRENT_VALUE_TYPE;
-						pVarCell->ContCell.Value = contentCell.Value;
+						*(uint32*)&pVarCell->ContCell = *(uint32*)&contentCell;
 
 						pVarCell->ValueContCell.Type = VALUE_TYPE;
-						pVarCell->ValueContCell.Value = value;
+						*(uint32*)&pVarCell->ValueContCell = value;
 						
 						contentCell.Type = VAR_TYPE;
-						contentCell.Value = lastVarOffset++;
+						*(uint32*)&contentCell = lastVarOffset++;
 
 						//set rest of key and value
 						for (contentIndex++, keyOffset++; keyOffset < originKeyLen; contentIndex++, keyOffset++)
@@ -282,7 +282,7 @@ uint32 HArray::insert(uint32* key,
 
 						return 0;
 					}
-					else if (contentCell.Value != key[keyOffset])
+					else if (*(uint32*)&contentCell != key[keyOffset])
 					{
 #ifndef _RELEASE
 						tempValues[CONTENT_BRANCH_STAT]++;
@@ -303,8 +303,8 @@ uint32 HArray::insert(uint32* key,
 
 							countReleasedBranchCells--;
 
-							pBranchCell->Values[0] = contentCell.Value;
-							contentCell.Value = branchOffset;
+							pBranchCell->Values[0] = *(uint32*)&contentCell;
+							*(uint32*)&contentCell = branchOffset;
 						}
 						else
 						{
@@ -322,8 +322,8 @@ uint32 HArray::insert(uint32* key,
 
 							pBranchCell = &pBranchPage->pBranch[lastBranchOffset & 0xFFFF];
 
-							pBranchCell->Values[0] = contentCell.Value;
-							contentCell.Value = lastBranchOffset++;
+							pBranchCell->Values[0] = *(uint32*)&contentCell;
+							*(uint32*)&contentCell = lastBranchOffset++;
 						}
 
 						pBranchCell->Offsets[0] = contentOffset + 1;
@@ -354,7 +354,7 @@ uint32 HArray::insert(uint32* key,
 
 						pVarCell = &pVarPages[varOffset >> 16]->pVar[varOffset & 0xFFFF];
 
-						tailReleasedVarOffset = pVarCell->ValueContCell.Value;
+						tailReleasedVarOffset = *(uint32*)&pVarCell->ValueContCell;
 
 						countReleasedVarCells--;
 					}
@@ -378,13 +378,13 @@ uint32 HArray::insert(uint32* key,
 					ContentCell& contentCell = pContentPage->pContent[contentIndex];
 
 					pVarCell->ValueContCell.Type = VALUE_TYPE;
-					pVarCell->ValueContCell.Value = contentCell.Value;
+					*(uint32*)&pVarCell->ValueContCell = *(uint32*)&contentCell;
 
 					pVarCell->ContCell.Type = CONTINUE_VAR_TYPE;
-					pSetLastContentOffset = &pVarCell->ContCell.Value;
+					pSetLastContentOffset = (uint32*)&pVarCell->ContCell;
 
 					contentCell.Type = VAR_TYPE;
-					contentCell.Value = lastVarOffset++;
+					*(uint32*)&contentCell = lastVarOffset++;
 
 					goto FILL_KEY2;
 				}
@@ -392,7 +392,7 @@ uint32 HArray::insert(uint32* key,
 				{
 					ContentCell& contentCell = pContentPage->pContent[contentIndex];
 
-					contentCell.Value = value;
+					*(uint32*)&contentCell = value;
 
 					return 0;
 				}
@@ -415,7 +415,7 @@ uint32 HArray::insert(uint32* key,
 
 							pVarCell = &pVarPages[varOffset >> 16]->pVar[varOffset & 0xFFFF];
 
-							tailReleasedVarOffset = pVarCell->ValueContCell.Value;
+							tailReleasedVarOffset = *(uint32*)&pVarCell->ValueContCell;
 
 							countReleasedVarCells--;
 						}
@@ -439,13 +439,13 @@ uint32 HArray::insert(uint32* key,
 						ContentCell& currContentCell = pContentPage->pContent[contentIndex];
 
 						pVarCell->ContCell.Type = CURRENT_VALUE_TYPE;
-						pVarCell->ContCell.Value = currContentCell.Value;
+						*(uint32*)&pVarCell->ContCell = *(uint32*)&currContentCell;
 
 						pVarCell->ValueContCell.Type = VALUE_TYPE;
-						pVarCell->ValueContCell.Value = value;
+						*(uint32*)&pVarCell->ValueContCell = value;
 
 						pContentPage->pContent[contentIndex].Type = VAR_TYPE;
-						pContentPage->pContent[contentIndex].Value = lastVarOffset++;
+						*(uint32*)&pContentPage->pContent[contentIndex] = lastVarOffset++;
 
 						//set rest of key and value
 						for (contentOffset++, keyOffset++; keyOffset < originKeyLen; contentOffset++, keyOffset++)
@@ -457,7 +457,7 @@ uint32 HArray::insert(uint32* key,
 
 						return 0;
 					}
-					else if (pContentPage->pContent[contentIndex].Value != key[keyOffset])
+					else if (*(uint32*)&pContentPage->pContent[contentIndex] != key[keyOffset])
 					{
 #ifndef _RELEASE
 						tempValues[CONTENT_BRANCH_STAT]++;
@@ -478,8 +478,8 @@ uint32 HArray::insert(uint32* key,
 
 							countReleasedBranchCells--;
 
-							pBranchCell->Values[0] = pContentPage->pContent[contentIndex].Value;
-							pContentPage->pContent[contentIndex].Value = branchOffset;
+							pBranchCell->Values[0] = *(uint32*)&pContentPage->pContent[contentIndex];
+							*(uint32*)&pContentPage->pContent[contentIndex] = branchOffset;
 						}
 						else
 						{
@@ -497,8 +497,8 @@ uint32 HArray::insert(uint32* key,
 
 							pBranchCell = &pBranchPage->pBranch[lastBranchOffset & 0xFFFF];
 
-							pBranchCell->Values[0] = pContentPage->pContent[contentIndex].Value;
-							pContentPage->pContent[contentIndex].Value = lastBranchOffset++;
+							pBranchCell->Values[0] = *(uint32*)&pContentPage->pContent[contentIndex];
+							*(uint32*)&pContentPage->pContent[contentIndex] = lastBranchOffset++;
 						}
 
 						pBranchCell->Offsets[0] = contentOffset + 1;
@@ -538,7 +538,7 @@ uint32 HArray::insert(uint32* key,
 
 						pVarCell = &pVarPages[varOffset >> 16]->pVar[varOffset & 0xFFFF];
 
-						tailReleasedVarOffset = pVarCell->ValueContCell.Value;
+						tailReleasedVarOffset = *(uint32*)&pVarCell->ValueContCell;
 
 						countReleasedVarCells--;
 					}
@@ -562,13 +562,13 @@ uint32 HArray::insert(uint32* key,
 					ContentCell& contentCell = pContentPage->pContent[contentIndex];
 
 					pVarCell->ValueContCell.Type = VALUE_TYPE;
-					pVarCell->ValueContCell.Value = contentCell.Value;
+					*(uint32*)&pVarCell->ValueContCell = *(uint32*)&contentCell;
 
 					pVarCell->ContCell.Type = CONTINUE_VAR_TYPE;
-					pSetLastContentOffset = &pVarCell->ContCell.Value;
+					pSetLastContentOffset = (uint32*)&pVarCell->ContCell;
 
 					contentCell.Type = VAR_TYPE;
-					contentCell.Value = lastVarOffset++;
+					*(uint32*)&contentCell = lastVarOffset++;
 
 					goto FILL_KEY2;
 				}
@@ -576,7 +576,7 @@ uint32 HArray::insert(uint32* key,
 				{
 					ContentCell& contentCell = pContentPage->pContent[contentIndex];
 
-					contentCell.Value = value;
+					*(uint32*)&contentCell = value;
 
 					return 0;
 				}
@@ -595,7 +595,7 @@ uint32 HArray::insert(uint32* key,
 
 		uint32 contentCellValueOrOffset;
 
-		contentCellValueOrOffset = pContentPage->pContent[contentIndex].Value;
+		contentCellValueOrOffset = *(uint32*)&pContentPage->pContent[contentIndex];
 
 		if (contentCellType == VAR_TYPE) //VAR =====================================================================
 		{
@@ -605,7 +605,7 @@ uint32 HArray::insert(uint32* key,
 			if (keyOffset < keyLen)
 			{
 				contentCellType = varCell.ContCell.Type; //read from var cell
-				contentCellValueOrOffset = varCell.ContCell.Value;
+				contentCellValueOrOffset = *(uint32*)&varCell.ContCell;
 
 				if (contentCellType == CONTINUE_VAR_TYPE) //CONTINUE VAR =====================================================================
 				{
@@ -620,7 +620,7 @@ uint32 HArray::insert(uint32* key,
 			{
 				//update existing value
 				varCell.ValueContCell.Type = VALUE_TYPE;
-				varCell.ValueContCell.Value = value;
+				*(uint32*)&varCell.ValueContCell = value;
 
 				return 0;
 			}
@@ -637,7 +637,7 @@ uint32 HArray::insert(uint32* key,
 
 					pVarCell = &pVarPages[varOffset >> 16]->pVar[varOffset & 0xFFFF];
 
-					tailReleasedVarOffset = pVarCell->ValueContCell.Value;
+					tailReleasedVarOffset = *(uint32*)&pVarCell->ValueContCell;
 
 					countReleasedVarCells--;
 				}
@@ -661,19 +661,19 @@ uint32 HArray::insert(uint32* key,
 				ContentCell& contentCell = pContentPage->pContent[contentIndex];
 
 				pVarCell->ValueContCell.Type = VALUE_TYPE;
-				pVarCell->ValueContCell.Value = contentCell.Value;
+				*(uint32*)&pVarCell->ValueContCell = *(uint32*)&contentCell;
 
 				pVarCell->ContCell.Type = CONTINUE_VAR_TYPE;
-				pSetLastContentOffset = &pVarCell->ContCell.Value;
+				pSetLastContentOffset = (uint32*)&pVarCell->ContCell;
 
 				contentCell.Type = VAR_TYPE;
-				contentCell.Value = lastVarOffset++;
+				*(uint32*)&contentCell = lastVarOffset++;
 
 				goto FILL_KEY2;
 			}
 			else
 			{
-				pContentCell->Value = value;
+				*(uint32*)pContentCell = value;
 
 				return 0;
 			}
@@ -688,7 +688,7 @@ uint32 HArray::insert(uint32* key,
 
 				pVarCell = &pVarPages[varOffset >> 16]->pVar[varOffset & 0xFFFF];
 
-				tailReleasedVarOffset = pVarCell->ValueContCell.Value;
+				tailReleasedVarOffset = *(uint32*)&pVarCell->ValueContCell;
 
 				countReleasedVarCells--;
 			}
@@ -712,13 +712,13 @@ uint32 HArray::insert(uint32* key,
 			ContentCell& contentCell = pContentPage->pContent[contentIndex];
 
 			pVarCell->ContCell.Type = contentCell.Type;
-			pVarCell->ContCell.Value = contentCell.Value;
+			*(uint32*)&pVarCell->ContCell = *(uint32*)&contentCell;
 
 			pVarCell->ValueContCell.Type = VALUE_TYPE;
-			pVarCell->ValueContCell.Value = value;
+			*(uint32*)&pVarCell->ValueContCell = value;
 
 			contentCell.Type = VAR_TYPE;
-			contentCell.Value = lastVarOffset++;
+			*(uint32*)&contentCell = lastVarOffset++;
 
 			return 0;
 		}
@@ -849,7 +849,7 @@ uint32 HArray::insert(uint32* key,
 
 				//fill block
 				pContentCell->Type = currContentCellType;
-				pContentCell->Value = startBlockOffset;
+				*(uint32*)pContentCell = startBlockOffset;
 
 				for (uint32 i = 0; i < countCell; i++)
 				{
@@ -1505,7 +1505,7 @@ uint32 HArray::insert(uint32* key,
 					countReleasedBranchCells--;
 
 					pBranchCell->Values[0] = contentCellValueOrOffset;
-					pContentCell->Value = branchOffset;
+					*(uint32*)pContentCell = branchOffset;
 				}
 				else
 				{
@@ -1524,7 +1524,7 @@ uint32 HArray::insert(uint32* key,
 					pBranchCell = &pBranchPage->pBranch[lastBranchOffset & 0xFFFF];
 
 					pBranchCell->Values[0] = contentCellValueOrOffset;
-					pContentCell->Value = lastBranchOffset++;
+					*(uint32*)pContentCell = lastBranchOffset++;
 				}
 
 				pBranchCell->Offsets[0] = contentOffset + 1;
@@ -1697,17 +1697,17 @@ uint32 HArray::insert(uint32* key,
 			contentIndex = startContentOffset & 0xFFFF;
 
 			pContentPage->pContent[contentIndex].Type = ONLY_CONTENT_TYPE + restKeyLen;
-			tailReleasedContentOffsets[restKeyLen] = pContentPage->pContent[contentIndex].Value;
+			tailReleasedContentOffsets[restKeyLen] = *(uint32*)&pContentPage->pContent[contentIndex];
 
 			countReleasedContentCells -= (restKeyLen + ValueLen);
 
 			for (; keyOffset < keyLen; contentIndex++, keyOffset++)
 			{
-				pContentPage->pContent[contentIndex].Value = key[keyOffset];
+				*(uint32*)&pContentPage->pContent[contentIndex] = key[keyOffset];
 			}
 
 			pContentPage->pContent[contentIndex].Type = VALUE_TYPE;
-			pContentPage->pContent[contentIndex].Value = value;
+			*(uint32*)&pContentPage->pContent[contentIndex] = value;
 
 			return 0;
 		}
@@ -1721,7 +1721,7 @@ uint32 HArray::insert(uint32* key,
 				//release content cells
 				uint32 spaceLen = MAX_SHORT - contentIndex - 1;
 
-				pContentPage->pContent[contentIndex].Value = tailReleasedContentOffsets[spaceLen];
+				*(uint32*)&pContentPage->pContent[contentIndex] = tailReleasedContentOffsets[spaceLen];
 
 				tailReleasedContentOffsets[spaceLen] = lastContentOffset;
 
@@ -1745,11 +1745,11 @@ uint32 HArray::insert(uint32* key,
 
 			for (; keyOffset < keyLen; contentIndex++, keyOffset++, lastContentOffset++)
 			{
-				pContentPage->pContent[contentIndex].Value = key[keyOffset];
+				*(uint32*)&pContentPage->pContent[contentIndex] = key[keyOffset];
 			}
 
 			pContentPage->pContent[contentIndex].Type = VALUE_TYPE;
-			pContentPage->pContent[contentIndex].Value = value;
+			*(uint32*)&pContentPage->pContent[contentIndex] = value;
 
 			lastContentOffset++;
 

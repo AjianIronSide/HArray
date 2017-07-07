@@ -377,7 +377,7 @@ NEXT_KEY_PART:
 		ContentPage* pContentPage = pContentPages[contentOffset>>16];
 		ushort16 contentIndex = contentOffset&0xFFFF;
 
-		uint32 contentCellValueOrOffset = pContentPage->pContent[contentIndex].Value;
+		uint32 contentCellValueOrOffset = *(uint32*)&pContentPage->pContent[contentIndex];
 		uchar8 contentCellType = pContentPage->pContent[contentIndex].Type; //move to type part
 
 		if(contentCellType >= ONLY_CONTENT_TYPE) //ONLY CONTENT =========================================================================================
@@ -386,7 +386,7 @@ NEXT_KEY_PART:
 
 			for(uint32 i = 0; i < keyLen; i++, keyOffset++, contentOffset++)
 			{
-				uint32& keyValue = pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF].Value;
+				uint32& keyValue = *(uint32*)&pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF];
 
 				pairs[count].Key[keyOffset] = keyValue;
 
@@ -438,7 +438,7 @@ NEXT_KEY_PART:
 			if(pairs)
 			{
 				//printf("===> ADD VALUE\n");
-				pairs[count].Value = pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF].Value;
+				pairs[count].Value = *(uint32*)&pContentPages[contentOffset>>16]->pContent[contentOffset&0xFFFF];
 				pairs[count].KeyLen = keyOffset;
 				//pairs[count].print();
 
@@ -461,7 +461,7 @@ NEXT_KEY_PART:
 			VarCell& varCell = pVarPage->pVar[contentCellValueOrOffset & 0xFFFF];
 
 			//save value
-			pairs[count].Value = varCell.ValueContCell.Value;
+			pairs[count].Value = *(uint32*)&varCell.ValueContCell;
 			pairs[count].KeyLen = keyOffset;
 			//pairs[count].print();
 
@@ -471,7 +471,7 @@ NEXT_KEY_PART:
 			sortLastItem(pairs, count);
 
 			contentCellType = varCell.ContCell.Type; //read from var cell
-			contentCellValueOrOffset = varCell.ContCell.Value;
+			contentCellValueOrOffset = *(uint32*)&varCell.ContCell;
 
 			if(contentCellType == CONTINUE_VAR_TYPE) //CONTINUE VAR =====================================================================
 			{

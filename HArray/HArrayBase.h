@@ -163,8 +163,12 @@ struct BlockCell
 
 struct ContentCell
 {
+	uint32 Value1;
+	uint32 Value2;
+	uint32 Value3;
+	uint32 Value4;
+
 	uchar8 Type;
-	uint32 Value;
 };
 
 struct HeaderCell
